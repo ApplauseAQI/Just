@@ -56,6 +56,7 @@ extension Just {
         timeout:Double? = nil,
         URLQuery:String? = nil,
         requestBody:NSData? = nil,
+        saveToFile:Bool = false,
         asyncCompletionHandler:((HTTPResult!) -> Void)? = nil
         ) -> HTTPResult {
 
@@ -73,6 +74,7 @@ extension Just {
                 timeout:timeout,
                 URLQuery: URLQuery,
                 requestBody: requestBody,
+                saveToFile:saveToFile,
                 asyncCompletionHandler: asyncCompletionHandler
             )
 
@@ -91,6 +93,7 @@ extension Just {
         timeout:Double? = nil,
         requestBody:NSData? = nil,
         URLQuery:String? = nil,
+        saveToFile:Bool = false,
         asyncCompletionHandler:((HTTPResult!) -> Void)? = nil
         ) -> HTTPResult {
 
@@ -108,6 +111,7 @@ extension Just {
                 timeout:timeout,
                 URLQuery: URLQuery,
                 requestBody: requestBody,
+                saveToFile:saveToFile,
                 asyncCompletionHandler: asyncCompletionHandler
             )
 
@@ -126,6 +130,7 @@ extension Just {
         timeout:Double? = nil,
         requestBody:NSData? = nil,
         URLQuery:String? = nil,
+        saveToFile:Bool = false,
         asyncCompletionHandler:((HTTPResult!) -> Void)? = nil
         ) -> HTTPResult {
 
@@ -143,6 +148,7 @@ extension Just {
                 timeout: timeout,
                 URLQuery: URLQuery,
                 requestBody: requestBody,
+                saveToFile:saveToFile,
                 asyncCompletionHandler: asyncCompletionHandler
             )
 
@@ -161,6 +167,7 @@ extension Just {
         timeout:Double? = nil,
         requestBody:NSData? = nil,
         URLQuery:String? = nil,
+        saveToFile:Bool = false,
         asyncCompletionHandler:((HTTPResult!) -> Void)? = nil
         ) -> HTTPResult {
 
@@ -178,6 +185,7 @@ extension Just {
                 timeout: timeout,
                 URLQuery: URLQuery,
                 requestBody: requestBody,
+                saveToFile:saveToFile,
                 asyncCompletionHandler: asyncCompletionHandler
             )
 
@@ -196,6 +204,7 @@ extension Just {
         timeout:Double? = nil,
         requestBody:NSData? = nil,
         URLQuery:String? = nil,
+        saveToFile:Bool = false,
         asyncCompletionHandler:((HTTPResult!) -> Void)? = nil
         ) -> HTTPResult {
 
@@ -213,6 +222,7 @@ extension Just {
                 timeout: timeout,
                 URLQuery: URLQuery,
                 requestBody: requestBody,
+                saveToFile:saveToFile,
                 asyncCompletionHandler: asyncCompletionHandler
             )
 
@@ -231,6 +241,7 @@ extension Just {
         timeout:Double? = nil,
         requestBody:NSData? = nil,
         URLQuery:String? = nil,
+        saveToFile:Bool = false,
         asyncCompletionHandler:((HTTPResult!) -> Void)? = nil
         ) -> HTTPResult {
 
@@ -248,6 +259,7 @@ extension Just {
                 timeout: timeout,
                 URLQuery: URLQuery,
                 requestBody: requestBody,
+                saveToFile:saveToFile,
                 asyncCompletionHandler: asyncCompletionHandler
             )
 
@@ -266,6 +278,7 @@ extension Just {
         timeout:Double? = nil,
         requestBody:NSData? = nil,
         URLQuery:String? = nil,
+        saveToFile:Bool = false,
         asyncCompletionHandler:((HTTPResult!) -> Void)? = nil
         ) -> HTTPResult {
 
@@ -283,6 +296,7 @@ extension Just {
                 timeout: timeout,
                 URLQuery: URLQuery,
                 requestBody: requestBody,
+                saveToFile:saveToFile,
                 asyncCompletionHandler: asyncCompletionHandler
             )
 
@@ -312,6 +326,7 @@ public class HTTPResult : NSObject, Printable, DebugPrintable {
     public var error:NSError?
     public var request:NSURLRequest?
     public var encoding = NSUTF8StringEncoding
+    public var downloadedTempFileURL:NSURL?
     public var JSONReadingOptions = NSJSONReadingOptions(0)
 
     public var reason:String {
@@ -481,6 +496,7 @@ typealias TaskID = Int
 struct TaskConfiguration {
     var credential:(String, String)?
     var redirects:Bool
+    var saveToFile:Bool
 }
 
 public struct JustSessionDefaults {
@@ -559,14 +575,25 @@ public class Just: NSObject, NSURLSessionDelegate, NSURLSessionTaskDelegate {
     }
 
 
-    func makeTask(request:NSURLRequest, configuration: TaskConfiguration, completionHandler:((HTTPResult) -> Void)? = nil) -> NSURLSessionDataTask {
-        let task:NSURLSessionDataTask
+    func makeTask(request:NSURLRequest, configuration: TaskConfiguration, completionHandler:((HTTPResult) -> Void)? = nil) -> NSURLSessionTask {
+        let task:NSURLSessionTask
         if let handler = completionHandler {
-            task = session.dataTaskWithRequest(request) { (data, response, error) in
-                let result = HTTPResult(data: data, response: response, error: error, request: request)
-                result.JSONReadingOptions = self.defaults.JSONReadingOptions
-                result.encoding = self.defaults.encoding
-                handler(result)
+            if configuration.saveToFile {
+                task = session.downloadTaskWithRequest(request) {[weak self] (downloadedTempFileURL, response, error) in
+                    let result = HTTPResult(data: nil, response: response, error: error, request: request)
+                    if let encoding = self?.defaults.encoding {
+                        result.encoding = encoding
+                    }
+                    result.downloadedTempFileURL = self?.moveFileToTemp(downloadedTempFileURL)
+                    handler(result)
+                }
+            } else {
+                task = session.dataTaskWithRequest(request) { (data, response, error) in
+                    let result = HTTPResult(data: data, response: response, error: error, request: request)
+                    result.JSONReadingOptions = self.defaults.JSONReadingOptions
+                    result.encoding = self.defaults.encoding
+                    handler(result)
+                }
             }
         } else {
             task = session.dataTaskWithRequest(request, completionHandler: nil)
@@ -712,13 +739,14 @@ public class Just: NSObject, NSURLSessionDelegate, NSURLSessionTaskDelegate {
         timeout:Double?,
         URLQuery:String?,
         requestBody:NSData?,
+        saveToFile:Bool,
         asyncCompletionHandler:((HTTPResult!) -> Void)?) -> HTTPResult {
 
             let isSync = asyncCompletionHandler == nil
             var semaphore = dispatch_semaphore_create(0)
             var requestResult:HTTPResult = HTTPResult(data: nil, response: nil, error: syncResultAccessError, request: nil)
 
-            let config = TaskConfiguration(credential:auth, redirects:redirects)
+            let config = TaskConfiguration(credential:auth, redirects:redirects, saveToFile: saveToFile)
             let caseInsensitiveHeaders = CaseInsensitiveDictionary<String,String>(dictionary:headers)
             if let request = synthesizeRequest(
                 method,
@@ -805,6 +833,22 @@ public class Just: NSObject, NSURLSessionDelegate, NSURLSessionTaskDelegate {
         } else {
             completionHandler(request)
         }
+    }
+    
+    public func moveFileToTemp(fileURL: NSURL) -> NSURL? {
+        var movedFileURL: NSURL?
+        if let tempDir = NSTemporaryDirectory(), let tempDirURL = NSURL(fileURLWithPath: tempDir) {
+            var fileManager = NSFileManager.defaultManager()
+            var error: NSError?
+            if let fileName = fileURL.lastPathComponent {
+                var prefixedfileName = "_just_" + fileName
+                var destinationURL = tempDirURL.URLByAppendingPathComponent(prefixedfileName)
+                if fileManager.moveItemAtURL(fileURL, toURL: destinationURL, error: &error) == true {
+                    movedFileURL = destinationURL
+                }
+            }
+        }
+        return movedFileURL
     }
 }
 
