@@ -1,15 +1,16 @@
+#   Just: Swift HTTP for Humans [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+
+<img src="https://raw.githubusercontent.com/JustHTTP/Just/master/Docs/IconMasked.png" width="280" height="280">
+
 Just is a client-side HTTP library inspired by [python-requests][] - HTTP for Humans.
 
-*Caution: Just is still in development and is subject to breaking changes before version 1.0.*
+Swift 2.0 support can be found on *[swift-2.0][]* branch.
 
-
-[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage) ![Platform](http://img.shields.io/cocoapods/p/Timepiece.svg?style=flat)
-
-Follow [@JustHTTP](twitter) for updates. Questions/comments/concerns are also welcome!
+*Follow [@JustHTTP][twitter] for updates, if you are into that kind of things* 😉
 
 [python-requests]: http://python-requests.org "python-requests"
 [twitter]: https://twitter.com/JustHTTP
-
+[swift-2.0]: https://github.com/JustHTTP/Just/tree/swift-2.0 "Just support for Swift 2.0"
 #   Features
 
 Just lets you to the following effortlessly:
@@ -23,11 +24,19 @@ Just lets you to the following effortlessly:
 -   cookies
 -   timeouts
 -   synchrounous / asyncrounous requests
+-   upload / download progress tracking for asynchronous requests
 -   friendly accessible results
 
 #  Use
 
-An examle of making a request with Just:
+The simplest request with Just looks like this:
+
+```swift
+//  A simple get request
+Just.get("http://httpbib.org/get")
+```
+
+The next example shows how to upload a file along with some data:
 
 ```swift
 //  talk to registration end point
@@ -54,24 +63,43 @@ Just.post(
 
 ```
 
-To learn more, read *Getting Started* [on the web][starting link] or
-[in this playground][starting playground]
+Just can do much, much more.
+Read *Getting Started* [on the web][starting link] or
+[in this playground][starting playground] to learn more!
 
-[starting playground]: https://raw.githubusercontent.com/JustHTTP/Just/master/Docs/JustStarting.zip
-[starting link]: http://docs.justhttp.net/JustStarting.html
+[starting playground]: https://raw.githubusercontent.com/JustHTTP/Just/master/Docs/QuickStart.zip
+[starting link]: http://docs.justhttp.net/QuickStart.html
 
 #  Install
 
 Here are some ways to leverage Just.
 
--   **Source File**: There's only one. Drop it in a playground or, if so desired, directly into
-    your code base.
+## Carthage (recommended)
 
--   **Git Submodule**: Add this repository as a git submodule, drop `Just.xcodeproj` in to your
-    Xcode project so that you can make `Just.framework` a dependency and link to it.
+Include the following in your Cartfile:
 
--   **Dynamic Framework**: [Carthage][] can install Just because Just is a dynamic framework
-    for iOS and OS X. Other ways to use 3rd party dynamic framework should also work.
+    github "JustHTTP/Just"
+
+Just includes dynamic framework targets for both iOS and OS X.
+
+## Manual
+
+Drop `Just.xcodeproj` into your project navigator. Under the *General* tab of
+your project settings, use the plus sign to add `Just.framework` to
+*Linked Framework and Libraries*. Make sure to include the correct version
+for your target's platform.
+
+It's also common to add Just as a git submodule to your projects repository:
+
+    cd path/to/your/project
+    git submodule add https://github.org/JustHTTP/Just.git
+
+
+## Source File
+
+Put `Just.swift` directly into your project. Alternately, put it in the
+*Sources* folder of a playground. (The latter makes a fun way to explore the
+web.)
 
 
 [Carthage]: https://github.com/Carthage/Carthage "Carthage"

@@ -334,7 +334,7 @@ public final class HTTPResult : NSObject, Printable, DebugPrintable {
         return description
     }
 
-    public init(data:NSData?, response:NSURLResponse?, error:NSError?, request:NSURLRequest?) {
+    init(data:NSData?, response:NSURLResponse?, error:NSError?, request:NSURLRequest?) {
         self.content = data
         self.response = response
         self.error = error

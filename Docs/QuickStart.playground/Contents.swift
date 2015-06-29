@@ -1,9 +1,10 @@
-//: # Getting Started With Just
-//: This is an introduction to the basics of donig HTTP via Just.
+//: # Just: A Quick Start
+//: This is an introduction to the basics of donig HTTP via
+//: [Just](http://JustHTTP.net).
 //: It's available both on the
-//: [web](http://docs.justhttp.net/JustStarting.html)
+//: [web](http://docs.justhttp.net/QuickStart.html)
 //: and as a
-//: [playground](https://raw.githubusercontent.com/JustHTTP/Just/master/Docs/JustStarting.zip).
+//: [playground](https://raw.githubusercontent.com/JustHTTP/Just/master/Docs/QuickStart.zip).
 //: Readers are assumed to understand of the HTTP protocal.
 //:
 //: ## Simple Requests
@@ -18,9 +19,18 @@ Just.post("http://httpbin.org/post")
 
 Just.get("http://httpbin.org/get", params:["page": 3])
 
-//: Just supports these methods *DELETE/GET/HEAD/OPTIONS/PATCH/POST/PUT*
 //: The URL is the only required argument when making a request. Just strives
 //: for a minimum interface.
+//:
+//: The following methods can be done in similar ways:
+//:
+//: - DELETE
+//: - GET
+//: - HEAD
+//: - OPTIONS
+//: - PATCH
+//: - POST
+//: - PUT
 
 //: ## Synchronous v. Asynchronous
 //: When working with Swift, we tend to shun sychronous network requests because
@@ -186,3 +196,27 @@ Just.get("http://httpbin.org/basic-auth/flash/allen", auth:("flash", "allen")) /
 
 // this request won't finish
 Just.get("http://httpbin.org/delay/5", timeout:0.2).reason
+
+
+//: ## Upload and Download Progress
+//:
+//: When dealing with large files, you may be interested in knowing the progress
+//: of their uploading or downloading. You can do that by supplynig a call back
+//: to the parameter **asyncProgressHandler**.
+Just.post(
+    "http://httpbin.org/post",
+    files:["large file":.Text("or", "pretend this is a large file", nil)],
+    asyncProgressHandler: {(p) in
+        p.type // either .Upload or .Download
+        p.bytesProcessed
+        p.bytesExpectedToProcess
+        p.percent
+    }
+) { (r) in
+    // finished
+}
+
+//: The progress handler may be called during sending the request and receiving
+//: the response. You can tell them apart by checking the **type** property of the
+//: callback argument. In either cases, you can use **bytesProcessed**,
+//: **bytesExpectedToProcess** aned **percent** to check the actual progress.
